@@ -11,6 +11,7 @@ export default function Subjects() {
     const [editingId, setEditingId] = useState(null);
     const [filterYear, setFilterYear] = useState('all');
     const [filterSemester, setFilterSemester] = useState('all');
+    const [filterClass, setFilterClass] = useState('all');
 
     // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -55,7 +56,7 @@ export default function Subjects() {
                 await addSubject(payload);
                 alert('Subject Added');
             }
-            setFormData({ name: '', code: '', type: 'Theory', weekly_hours: 3, department_code: departments[0]?.code || '', semester: '', year: 1, faculty_id: '' });
+            setFormData({ name: '', code: '', type: 'Theory', weekly_hours: 3, department_code: departments[0]?.code || '', semester: '', year: 1, class_name: 'A', faculty_id: '' });
             setEditingId(null);
             loadData();
         } catch (e) { alert('Error: ' + e.message); }
@@ -70,6 +71,7 @@ export default function Subjects() {
             department_code: sub.department_code,
             semester: sub.semester,
             year: sub.year || 1,
+            class_name: sub.class_name || 'A',
             faculty_id: sub.faculty_id || ''
         });
         setEditingId(sub.id);
@@ -197,7 +199,6 @@ export default function Subjects() {
                             headers={['Subject Code', 'Name', 'Year', 'Sem', 'Faculty']}
                             data={subjects
                                 .filter(s => s.type === 'Theory')
-                                .filter(s => filterYear === 'all' || s.year === parseInt(filterYear))
                                 .filter(s => filterSemester === 'all' || s.semester === parseInt(filterSemester))
                                 .map(s => ({
                                     ...s,
@@ -219,7 +220,6 @@ export default function Subjects() {
                             headers={['Subject Code', 'Name', 'Year', 'Sem', 'Faculty']}
                             data={subjects
                                 .filter(s => s.type === 'Lab')
-                                .filter(s => filterYear === 'all' || s.year === parseInt(filterYear))
                                 .filter(s => filterSemester === 'all' || s.semester === parseInt(filterSemester))
                                 .map(s => ({
                                     ...s,

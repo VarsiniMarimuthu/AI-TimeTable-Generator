@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { DataTable } from '../components/DataTable';
-import { getFaculty, getDepartments, addFaculty, updateFaculty, deleteFaculty } from '../services/api';
+import { getFaculty, getDepartments, addFaculty, updateFaculty, deleteFaculty, getSubjects } from '../services/api';
 
 export default function Faculty() {
     const [faculty, setFaculty] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [subjects, setSubjects] = useState([]); // Fetch subjects for filtering
     const [editingId, setEditingId] = useState(null);
+
+    // Filters
+    const [filterYear, setFilterYear] = useState('all');
+    const [filterSemester, setFilterSemester] = useState('all');
+    const [filterClass, setFilterClass] = useState('all');
 
     const [formData, setFormData] = useState({
         name: '', email: '', designation: 'Professor',
@@ -17,12 +23,14 @@ export default function Faculty() {
 
     const loadData = async () => {
         try {
-            const [facRes, deptRes] = await Promise.all([
+            const [facRes, deptRes, subRes] = await Promise.all([
                 getFaculty(),
-                getDepartments()
+                getDepartments(),
+                getSubjects()
             ]);
             setFaculty(facRes);
             setDepartments(deptRes);
+            setSubjects(subRes);
             if (!editingId && deptRes.length > 0 && !formData.department_code) {
                 setFormData(prev => ({ ...prev, department_code: deptRes[0].code }));
             }
@@ -79,6 +87,32 @@ export default function Faculty() {
     const user = JSON.parse(localStorage.getItem('user')) || { role: 'faculty' };
     const isAdmin = user.role === 'admin';
 
+    // Helper to check if faculty matches filters
+    const matchesFilters = (fac) => {
+        // If no filters active, show all
+        if (filterYear === 'all' && filterSemester === 'all' && filterClass === 'all') return true;
+
+        // Find all subjects assigned to this faculty
+        const assignedSubjects = subjects.filter(s => s.faculty_id === fac.id);
+
+        // If faculty has no subjects but filters are active, hide them? 
+        // Or strictly show those who MATCH. Yes, filter usually implies "show matching".
+        if (assignedSubjects.length === 0) return false;
+
+        // Check if ANY assigned subject matches the criteria
+        return assignedSubjects.some(s => {
+            const matchYear = filterYear === 'all' || s.year === parseInt(filterYear);
+            const matchSem = filterSemester === 'all' || s.semester === parseInt(filterSemester);
+            // Class filter is tricky since Subjects don't have Class anymore (it's common).
+            // But if user insists on Class filter, we can't really filter by it unless we assume all subjects apply to all classes.
+            // So Class filter effectively does nothing for now unless we re-introduce class-specific subject mapping?
+            // For now, let's ignore Class filter logic for the match, or treat as "matches all" since subjects are shared.
+            const matchClass = true;
+
+            return matchYear && matchSem && matchClass;
+        });
+    };
+
     return (
         <Layout title="Manage Faculty">
             <div className="flex gap-8">
@@ -117,13 +151,67 @@ export default function Faculty() {
                     </div>
                 )}
                 <div className={isAdmin ? "flex-1" : "w-full"}>
+                    {/* Visual Filter Bar for Faculty */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">Filter By:</span>
+                            <div className="flex gap-3">
+                                <select
+                                    className="border-2 border-gray-200 px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-orodha-purple outline-none transition"
+                                    value={filterYear}
+                                    onChange={e => setFilterYear(e.target.value)}
+                                >
+                                    <option value="all">All Years</option>
+                                    <option value="1">Year 1</option>
+                                    <option value="2">Year 2</option>
+                                    <option value="3">Year 3</option>
+                                    <option value="4">Year 4</option>
+                                </select>
+                                <select
+                                    className="border-2 border-gray-200 px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-orodha-purple outline-none transition"
+                                    value={filterSemester}
+                                    onChange={e => setFilterSemester(e.target.value)}
+                                >
+                                    <option value="all">All Semesters</option>
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                    <option value="3">Semester 3</option>
+                                    <option value="4">Semester 4</option>
+                                    <option value="5">Semester 5</option>
+                                    <option value="6">Semester 6</option>
+                                    <option value="7">Semester 7</option>
+                                    <option value="8">Semester 8</option>
+                                </select>
+                                <select
+                                    className="border-2 border-gray-200 px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-orodha-purple outline-none transition"
+                                    value={filterClass}
+                                    onChange={e => setFilterClass(e.target.value)}
+                                >
+                                    <option value="all">All Classes</option>
+                                    <option value="A">Class A</option>
+                                    <option value="B">Class B</option>
+                                </select>
+                                {(filterYear !== 'all' || filterSemester !== 'all' || filterClass !== 'all') && (
+                                    <button
+                                        onClick={() => { setFilterYear('all'); setFilterSemester('all'); setFilterClass('all'); }}
+                                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-bold transition"
+                                    >
+                                        Clear Filters
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     <DataTable
                         headers={['Name', 'Email', 'Designation', 'Dept', 'Load']}
-                        data={faculty.map(f => ({
-                            ...f,
-                            dept: f.department_code,
-                            load: f.max_load_per_week
-                        }))}
+                        data={faculty
+                            .filter(matchesFilters)
+                            .map(f => ({
+                                ...f,
+                                dept: f.department_code,
+                                load: f.max_load_per_week
+                            }))}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showActions={isAdmin}

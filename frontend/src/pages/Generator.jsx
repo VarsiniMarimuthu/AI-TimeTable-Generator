@@ -36,12 +36,13 @@ export default function Generator() {
     useEffect(() => {
         if (config.department_code) {
             const filtered = allSubjects.filter(s =>
-                s.department_code === config.department_code &&
-                s.year === parseInt(config.year)
+                s.year === parseInt(config.year) &&
+                s.semester === parseInt(config.semester)
             );
             setFilteredSubjects(filtered);
 
             // Auto-calculate initial allocations based on subjects for this year/sem
+            // Only add if not already present or if we want to reset (current logic resets)
             const initial = filtered.map(s => ({
                 id: s.id,
                 subject_code: s.code,
@@ -247,7 +248,7 @@ export default function Generator() {
                                                     onChange={e => updateAllocation(alloc.id, 'subject_code', e.target.value)}
                                                 >
                                                     <option value="">Subject...</option>
-                                                    {allSubjects.map(s => <option key={s.id} value={s.code}>[{s.code}] {s.name}</option>)}
+                                                    {filteredSubjects.map(s => <option key={s.id} value={s.code}>[{s.code}] {s.name}</option>)}
                                                 </select>
                                                 <select
                                                     className="w-full bg-white border-2 border-gray-100 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orodha-purple transition"

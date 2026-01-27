@@ -43,6 +43,7 @@ class Subject(BaseModel):
     department_code: str = Field(..., description="Link to Department")
     semester: int = Field(...)
     year: int = Field(1, ge=1, le=4)
+    class_name: str = Field(..., description="e.g. A, B")
     faculty_id: Optional[str] = None
 
     class Config:
