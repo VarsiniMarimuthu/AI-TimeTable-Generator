@@ -15,7 +15,7 @@ export default function Faculty() {
     const [filterClass, setFilterClass] = useState('all');
 
     const [formData, setFormData] = useState({
-        name: '', email: '', designation: 'Professor',
+        name: '', email: '', designation: 'Assistant Professor',
         department_code: '', max_load_per_week: 12
     });
 
@@ -57,7 +57,7 @@ export default function Faculty() {
                 alert('Faculty Added');
             }
 
-            setFormData({ name: '', email: '', designation: 'Professor', department_code: departments[0]?.code || '', max_load_per_week: 12 });
+            setFormData({ name: '', email: '', designation: 'Assistant Professor', department_code: departments[0]?.code || '', max_load_per_week: 12 });
             setEditingId(null);
             loadData();
         } catch (e) { alert('Error: ' + e.message); }
@@ -130,7 +130,11 @@ export default function Faculty() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-600 mb-1 tracking-tight">Designation</label>
-                                <input className="w-full border p-2 rounded focus:ring-2 focus:ring-orodha-purple outline-none" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} />
+                                <select className="w-full border p-2 rounded focus:ring-2 focus:ring-orodha-purple outline-none" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })}>
+                                    <option value="Assistant Professor">Assistant Professor</option>
+                                    <option value="Associate Professor">Associate Professor</option>
+                                    <option value="Professor">Professor</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-600 mb-1 tracking-tight">Department</label>

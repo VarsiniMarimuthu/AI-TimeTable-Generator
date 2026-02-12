@@ -44,7 +44,9 @@ class Subject(BaseModel):
     semester: int = Field(...)
     year: int = Field(1, ge=1, le=4)
     class_name: str = Field(..., description="e.g. A, B")
-    faculty_id: Optional[str] = None
+    faculty_ids: List[str] = Field(default_factory=list)
+    acronym: Optional[str] = None
+    room_no: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -56,7 +58,8 @@ class Subject(BaseModel):
                 "department_code": "CS",
                 "semester": 3,
                 "year": 2,
-                "faculty_id": "60..."
+                "faculty_id": "60...",
+                "acronym": "DS"
             }
         }
 
@@ -99,8 +102,9 @@ class TimetableSlot(BaseModel):
     period: int # 1 to 9
     subject: str
     subject_code: Optional[str] = None
+    acronym: Optional[str] = None
     faculty: str
-    faculty_id: Optional[str] = None
+    faculty_ids: List[str] = Field(default_factory=list)
     room: str
     type: str # Theory or Lab
 

@@ -147,7 +147,7 @@ export default function Timetables() {
                                                 {slot ? (
                                                     <div className="flex flex-col gap-1 p-2">
                                                         <div className="bg-orange-400 text-white text-[10px] font-bold py-0.5 px-1 rounded uppercase tracking-tighter truncate">{slot.faculty}</div>
-                                                        <div className="text-[11px] font-bold text-gray-800 leading-tight">{slot.subject}</div>
+                                                        <div className="text-[11px] font-bold text-gray-800 leading-tight">{slot.acronym || slot.subject}</div>
                                                         <div className="bg-blue-500 text-white text-[9px] py-0.5 px-1 rounded truncate">{slot.room}</div>
                                                     </div>
                                                 ) : <span className="text-gray-300">-</span>}

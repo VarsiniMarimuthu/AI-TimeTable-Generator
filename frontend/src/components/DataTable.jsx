@@ -1,8 +1,8 @@
-import { Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Edit, Trash2, RefreshCw, Copy } from 'lucide-react';
 
-export function DataTable({ headers, data, onEdit, onDelete, showActions = true }) {
+export function DataTable({ headers, data, onEdit, onDelete, onDuplicate, showActions = true }) {
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
             <table className="w-full">
                 <thead className="bg-orodha-blue text-white">
                     <tr>
@@ -21,8 +21,9 @@ export function DataTable({ headers, data, onEdit, onDelete, showActions = true 
                             })}
                             {showActions && (
                                 <td className="p-3 flex gap-2 justify-center">
-                                    <button onClick={() => onEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded"><Edit size={16} /></button>
-                                    <button onClick={() => onDelete(row)} className="p-1.5 text-red-600 hover:bg-red-100 rounded"><Trash2 size={16} /></button>
+                                    {onDuplicate && <button onClick={() => onDuplicate(row)} className="p-1.5 text-green-600 hover:bg-green-100 rounded" title="Duplicate"><Copy size={16} /></button>}
+                                    <button onClick={() => onEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded" title="Edit"><Edit size={16} /></button>
+                                    <button onClick={() => onDelete(row)} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Delete"><Trash2 size={16} /></button>
                                 </td>
                             )}
                         </tr>

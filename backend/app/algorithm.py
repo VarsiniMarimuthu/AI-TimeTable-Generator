@@ -16,7 +16,7 @@ class TimetableCSP:
         self.timetable = {day: [{} for _ in range(SLOTS_PER_DAY)] for day in DAYS}
         
         # Tracking for constraints
-        # faculty_schedule[faculty_id][day][slot] = True/False
+        # faculty_occupied[faculty_id][day][slot] = True/False
         self.faculty_occupied = {f["_id"]: {d: [False]*SLOTS_PER_DAY for d in DAYS} for f in faculty}
 
         # Flatten courses into individual class sessions needed
@@ -35,7 +35,7 @@ class TimetableCSP:
                 queue.append({
                     "course_id": str(course["_id"]),
                     "name": course["name"],
-                    "faculty_id": str(course["faculty_id"]),
+                    "faculty_ids": [str(fid) for fid in (course.get("faculty_ids") or ([course["faculty_id"]] if course.get("faculty_id") else []))],
                     "semester": course["semester"],
                     "section": course.get("section", "A"),
                     "is_lab": is_lab,
@@ -67,10 +67,11 @@ class TimetableCSP:
                 return False
 
         # 4. Check Faculty Availability
-        fac_id = class_obj["faculty_id"]
+        fac_ids = class_obj["faculty_ids"]
         for i in range(duration):
-            if self.faculty_occupied[fac_id][day][slot_idx + i]:
-                return False
+            for fid in fac_ids:
+                if self.faculty_occupied[fid][day][slot_idx + i]:
+                    return False
 
         # 5. Check Student Availability (Section Collision)
         sec = class_obj["section"]
@@ -94,7 +95,8 @@ class TimetableCSP:
 
         for i in range(duration):
             self.timetable[day][slot_idx + i][group_key] = class_obj
-            self.faculty_occupied[fac_id][day][slot_idx + i] = True
+            for fid in class_obj["faculty_ids"]:
+                self.faculty_occupied[fid][day][slot_idx + i] = True
 
     def unassign(self, class_obj, day, slot_idx):
         duration = class_obj["duration"]
@@ -105,7 +107,8 @@ class TimetableCSP:
 
         for i in range(duration):
             del self.timetable[day][slot_idx + i][group_key]
-            self.faculty_occupied[fac_id][day][slot_idx + i] = False
+            for fid in class_obj["faculty_ids"]:
+                self.faculty_occupied[fid][day][slot_idx + i] = False
 
     def solve(self, index=0):
         if index >= len(self.class_queue):

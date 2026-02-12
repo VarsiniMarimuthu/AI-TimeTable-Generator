@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import * as api from '../services/api';
-import { Settings, Edit2 } from 'lucide-react';
+import { Settings, Edit2, X } from 'lucide-react';
 
 export default function Generator() {
     const [departments, setDepartments] = useState([]);
@@ -23,6 +23,8 @@ export default function Generator() {
     const [loading, setLoading] = useState(false);
     const [editingSlot, setEditingSlot] = useState(null);
     const [view, setView] = useState('form'); // 'form' or 'timetable'
+    const [facultySearch, setFacultySearch] = useState({}); // Map of allocation ID to search string
+    const [showFacultyDropdown, setShowFacultyDropdown] = useState({}); // Map of allocation ID to boolean
 
     useEffect(() => {
         api.getDepartments().then(res => {
@@ -37,7 +39,8 @@ export default function Generator() {
         if (config.department_code) {
             const filtered = allSubjects.filter(s =>
                 s.year === parseInt(config.year) &&
-                s.semester === parseInt(config.semester)
+                s.semester === parseInt(config.semester) &&
+                (s.class_name || 'A') === config.class_name
             );
             setFilteredSubjects(filtered);
 
@@ -46,14 +49,14 @@ export default function Generator() {
             const initial = filtered.map(s => ({
                 id: s.id,
                 subject_code: s.code,
-                faculty_id: s.faculty_id || ''
+                faculty_ids: s.faculty_ids ? [...s.faculty_ids] : (s.faculty_id ? [s.faculty_id] : [])
             }));
             setAllocations(initial);
         }
-    }, [config.department_code, config.year, config.semester, allSubjects]);
+    }, [config.department_code, config.year, config.semester, config.class_name, allSubjects]);
 
     const handleAddAllocation = () => {
-        setAllocations([...allocations, { id: Date.now(), subject_code: '', faculty_id: '' }]);
+        setAllocations([...allocations, { id: Date.now(), subject_code: '', faculty_ids: [] }]);
     };
 
     const handleRemoveAllocation = (id) => {
@@ -66,8 +69,10 @@ export default function Generator() {
                 const updated = { ...a, [field]: value };
                 if (field === 'subject_code') {
                     // Auto-fill faculty from Admin setting
-                    const sub = allSubjects.find(s => s.code === value);
-                    if (sub?.faculty_id) updated.faculty_id = sub.faculty_id;
+                    // Use filteredSubjects to ensure we get the subject for THIS class
+                    const sub = filteredSubjects.find(s => s.code === value);
+                    if (sub?.faculty_ids) updated.faculty_ids = [...sub.faculty_ids];
+                    else if (sub?.faculty_id) updated.faculty_ids = [sub.faculty_id];
                 }
                 return updated;
             }
@@ -84,12 +89,15 @@ export default function Generator() {
                     updated.faculty = fac ? fac.name : 'Unknown';
                 }
                 if (field === 'subject_code') {
-                    const sub = allSubjects.find(sb => sb.code === value);
+                    const sub = allSubjects.find(sb => sb.code === value && (sb.class_name || 'A') === config.class_name);
                     updated.subject = sub ? sub.name : 'Unknown';
                     if (sub?.faculty_id) {
                         updated.faculty_id = sub.faculty_id;
                         const fac = facultyList.find(f => f.id === sub.faculty_id);
                         updated.faculty = fac ? fac.name : 'Unknown';
+                    }
+                    if (sub?.room_no) {
+                        updated.room = sub.room_no;
                     }
                 }
                 return updated;
@@ -119,7 +127,7 @@ export default function Generator() {
             semester: parseInt(config.semester),
             subject_allocations: allocations.filter(a => a.subject_code).map(a => ({
                 subject_code: a.subject_code,
-                faculty_id: a.faculty_id
+                faculty_ids: a.faculty_ids
             }))
         };
 
@@ -250,16 +258,49 @@ export default function Generator() {
                                                     <option value="">Subject...</option>
                                                     {filteredSubjects.map(s => <option key={s.id} value={s.code}>[{s.code}] {s.name}</option>)}
                                                 </select>
-                                                <select
-                                                    className="w-full bg-white border-2 border-gray-100 p-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orodha-purple transition"
-                                                    value={alloc.faculty_id}
-                                                    onChange={e => updateAllocation(alloc.id, 'faculty_id', e.target.value)}
-                                                >
-                                                    <option value="">Instructor...</option>
-                                                    {facultyList.map(f => (
-                                                        <option key={f.id} value={f.id}>{f.name}</option>
-                                                    ))}
-                                                </select>
+                                                <div className="relative">
+                                                    <div className="min-h-[42px] w-full bg-white border-2 border-gray-100 p-1 rounded-xl text-sm outline-none focus-within:ring-2 focus-within:ring-orodha-purple transition flex flex-wrap gap-1">
+                                                        {alloc.faculty_ids?.map(id => {
+                                                            const f = facultyList.find(fac => fac.id === id);
+                                                            return (
+                                                                <span key={id} className="bg-orodha-purple/10 text-orodha-purple px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+                                                                    {f?.name || "Unknown"}
+                                                                    <X size={14} className="cursor-pointer hover:text-red-500" onClick={() => updateAllocation(alloc.id, 'faculty_ids', alloc.faculty_ids.filter(fid => fid !== id))} />
+                                                                </span>
+                                                            );
+                                                        })}
+                                                        <input
+                                                            className="flex-1 outline-none p-1 text-sm min-w-[120px]"
+                                                            placeholder={(!alloc.faculty_ids || alloc.faculty_ids.length === 0) ? "Assign faculty..." : "Add more..."}
+                                                            value={facultySearch[alloc.id] || ''}
+                                                            onChange={e => {
+                                                                setFacultySearch({ ...facultySearch, [alloc.id]: e.target.value });
+                                                                setShowFacultyDropdown({ ...showFacultyDropdown, [alloc.id]: true });
+                                                            }}
+                                                            onFocus={() => setShowFacultyDropdown({ ...showFacultyDropdown, [alloc.id]: true })}
+                                                        />
+                                                    </div>
+
+                                                    {showFacultyDropdown[alloc.id] && facultySearch[alloc.id] && (
+                                                        <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-xl max-h-48 overflow-y-auto">
+                                                            {facultyList
+                                                                .filter(f => f.name.toLowerCase().includes(facultySearch[alloc.id].toLowerCase()) && !alloc.faculty_ids?.includes(f.id))
+                                                                .map(f => (
+                                                                    <div
+                                                                        key={f.id}
+                                                                        className="p-2 hover:bg-gray-100 cursor-pointer text-sm font-medium"
+                                                                        onClick={() => {
+                                                                            updateAllocation(alloc.id, 'faculty_ids', [...(alloc.faculty_ids || []), f.id]);
+                                                                            setFacultySearch({ ...facultySearch, [alloc.id]: '' });
+                                                                            setShowFacultyDropdown({ ...showFacultyDropdown, [alloc.id]: false });
+                                                                        }}
+                                                                    >
+                                                                        {f.name} <span className="text-gray-400 text-xs">- {f.department_code}</span>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <button onClick={() => handleRemoveAllocation(alloc.id)} className="text-red-300 hover:text-red-600 transition p-2 bg-white rounded-lg shadow-sm">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="6 18L18 6M6 6l12 12"></path></svg>
