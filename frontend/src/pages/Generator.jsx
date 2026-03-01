@@ -90,6 +90,10 @@ export default function Generator() {
                 }
                 if (field === 'subject_code') {
                     const sub = allSubjects.find(sb => sb.code === value && (sb.class_name || 'A') === config.class_name);
+                    if (sub) {
+                        updated.subject_code = sub.code;
+                        updated.acronym = sub.acronym;
+                    }
                     updated.subject = sub ? sub.name : 'Unknown';
                     if (sub?.faculty_id) {
                         updated.faculty_id = sub.faculty_id;
@@ -177,7 +181,7 @@ export default function Generator() {
         return (
             <div onClick={() => setEditingSlot({ day, period })} className="flex flex-col gap-1 p-1 cursor-pointer hover:bg-white transition">
                 <div className="bg-orange-400 text-white text-[10px] font-bold py-0.5 px-1 rounded uppercase tracking-tighter truncate">{slot.faculty}</div>
-                <div className="text-[11px] font-bold text-gray-800 leading-tight">{slot.subject}</div>
+                <div className="text-[11px] font-bold text-gray-800 leading-tight">{slot.acronym || slot.subject_code || slot.subject}</div>
                 <div className="bg-blue-500 text-white text-[9px] py-0.5 px-1 rounded truncate">{slot.room}</div>
             </div>
         );

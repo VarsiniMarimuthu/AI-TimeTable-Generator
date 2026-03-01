@@ -316,36 +316,34 @@ async def generate_timetable(request: GenerateRequest = Body(...)):
                     schedule_block(d, s, sz, lab, fac_ids, fac_name, r)
                 block_scheduled = True
 
-    # 6.5 Schedule SKILL DEVELOPMENT (Year 1)
+    # 6.5 Schedule SKILL DEVELOPMENT
     for skill in skill_subjects:
-        weekly_hours = skill.get('weekly_hours', 2)
         sub_code = skill['code']
         fac_ids = allocation_map.get(sub_code) or skill.get('faculty_ids') or []
         if isinstance(fac_ids, str): fac_ids = [fac_ids]
         fac_name = await get_faculty_name(fac_ids)
         
-        # Prefer 2-hour blocks (e.g., 3-4 or 6-7)
         block_scheduled = False
         attempts = 0
         while not block_scheduled and attempts < 100:
             attempts += 1
-            day = random.choice(DAYS)
             
-        # Pattern from Image (Year 2): Wednesday (1-2)
-        if int(request.year) == 2:
-            if await can_schedule_block("Wednesday", 1, 2, fac_ids, skill.get('room_no') or rooms[0]['room_no']):
-                schedule_block("Wednesday", 1, 2, skill, fac_ids, fac_name, skill.get('room_no') or rooms[0]['room_no'])
-                block_scheduled = True
-            continue
-        
-        # Pattern from Image (Year 3): Wednesday (6-7)
-        if int(request.year) == 3:
-            if await can_schedule_block("Wednesday", 6, 2, fac_ids, skill.get('room_no') or rooms[0]['room_no']):
-                schedule_block("Wednesday", 6, 2, skill, fac_ids, fac_name, skill.get('room_no') or rooms[0]['room_no'])
-                block_scheduled = True
-            continue
+            # Pattern from Image (Year 2): Wednesday (1-2)
+            if int(request.year) == 2:
+                if await can_schedule_block("Wednesday", 1, 2, fac_ids, skill.get('room_no') or rooms[0]['room_no']):
+                    schedule_block("Wednesday", 1, 2, skill, fac_ids, fac_name, skill.get('room_no') or rooms[0]['room_no'])
+                    block_scheduled = True
+                break # Only one attempt for fixed slot
+            
+            # Pattern from Image (Year 3): Wednesday (6-7)
+            if int(request.year) == 3:
+                if await can_schedule_block("Wednesday", 6, 2, fac_ids, skill.get('room_no') or rooms[0]['room_no']):
+                    schedule_block("Wednesday", 6, 2, skill, fac_ids, fac_name, skill.get('room_no') or rooms[0]['room_no'])
+                    block_scheduled = True
+                break # Only one attempt for fixed slot
 
-            # Year 1 patterns
+            # General/Year 1 patterns
+            day = random.choice(DAYS)
             possible_starts = [3, 6] 
             random.shuffle(possible_starts)
             
@@ -582,7 +580,7 @@ async def generate_timetable(request: GenerateRequest = Body(...)):
         "year": request.year,
         "semester": request.semester,
         "class_name": request.class_name,
-        "schedule": [s.dict() for s in schedule],
+        "schedule": [s.model_dump() for s in schedule],
         "created_at": "now"
     }
     

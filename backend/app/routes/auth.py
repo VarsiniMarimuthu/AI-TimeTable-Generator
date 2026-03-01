@@ -11,7 +11,7 @@ class LoginModel(BaseModel):
 
 @router.post("/register")
 async def register(user: UserSchema = Body(...)):
-    user_data = user.dict()
+    user_data = user.model_dump()
     
     # Check if user exists
     existing_user = await database.users.find_one({"username": user_data["username"]})

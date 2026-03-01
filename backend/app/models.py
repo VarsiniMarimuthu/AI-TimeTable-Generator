@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 
 # --- Authentication ---
@@ -8,7 +8,7 @@ class UserSchema(BaseModel):
     role: str = Field(default="admin") # "admin" or "faculty"
     email: Optional[EmailStr] = None
 
-    class Config:
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "username": "admin",
@@ -17,6 +17,7 @@ class UserSchema(BaseModel):
                 "email": "admin@example.com"
             }
         }
+    )
 
 
 # --- Orodha System Models (Restructured) ---
@@ -26,7 +27,7 @@ class Department(BaseModel):
     code: str = Field(..., description="e.g. CS")
     semesters: List[int] = Field(..., description="e.g. [1, 2, 3, 4, 5, 6, 7, 8]")
 
-    class Config:
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "name": "Computer Science",
@@ -34,6 +35,7 @@ class Department(BaseModel):
                 "semesters": [1, 2, 3, 4, 5, 6, 7, 8]
             }
         }
+    )
 
 class Subject(BaseModel):
     name: str = Field(..., description="e.g. Data Structures")
@@ -48,7 +50,7 @@ class Subject(BaseModel):
     acronym: Optional[str] = None
     room_no: Optional[str] = None
 
-    class Config:
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "name": "Data Structures",
@@ -62,6 +64,7 @@ class Subject(BaseModel):
                 "acronym": "DS"
             }
         }
+    )
 
 class Faculty(BaseModel):
     name: str = Field(...)
@@ -70,7 +73,7 @@ class Faculty(BaseModel):
     department_code: str = Field(...)
     max_load_per_week: int = Field(default=12)
 
-    class Config:
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "name": "Dr. Smith",
@@ -81,6 +84,7 @@ class Faculty(BaseModel):
                 "max_load_per_week": 10
             }
         }
+    )
 
 # Simplified Room Model
 class Room(BaseModel):
