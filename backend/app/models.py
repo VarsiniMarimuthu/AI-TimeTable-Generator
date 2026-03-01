@@ -38,7 +38,7 @@ class Department(BaseModel):
 class Subject(BaseModel):
     name: str = Field(..., description="e.g. Data Structures")
     code: str = Field(..., description="e.g. CS201")
-    type: str = Field(..., description="Theory or Lab")
+    type: str = Field(..., description="Theory, Lab, Open Elective, Project Work, or Skill Development")
     weekly_hours: int = Field(..., gt=0)
     department_code: str = Field(..., description="Link to Department")
     semester: int = Field(...)

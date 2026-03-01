@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { DataTable } from '../components/DataTable';
 import { getSubjects, addSubject, updateSubject, deleteSubject, getDepartments, getFaculty, getRooms } from '../services/api';
-import { X, Search } from 'lucide-react';
+import { X, Search, Rocket, BrainCircuit } from 'lucide-react';
 
 export default function Subjects() {
     const [subjects, setSubjects] = useState([]);
@@ -136,6 +136,9 @@ export default function Subjects() {
                                     <select className="w-full border p-2 rounded focus:ring-2 focus:ring-orodha-purple outline-none" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
                                         <option>Theory</option>
                                         <option>Lab</option>
+                                        <option>Open Elective</option>
+                                        <option>Project Work</option>
+                                        <option>Skill Development</option>
                                         <option>Library/Skill Development</option>
                                     </select>
                                 </div>
@@ -296,7 +299,8 @@ export default function Subjects() {
                             headers={['Subject Code', 'Class', 'Acronym', 'Name', 'Year', 'Sem', 'Hours', 'Faculty', 'Room']}
                             data={subjects
                                 .filter(s => s.type === 'Theory')
-                                .filter(s => filterSemester === 'all' || s.semester === parseInt(filterSemester))
+                                .filter(s => filterYear === 'all' || String(s.year) === String(filterYear))
+                                .filter(s => filterSemester === 'all' || String(s.semester) === String(filterSemester))
                                 .filter(s => filterClass === 'all' || s.class_name === filterClass)
                                 .map(s => ({
                                     ...s,
@@ -325,7 +329,8 @@ export default function Subjects() {
                             headers={['Subject Code', 'Class', 'Name', 'Year', 'Sem', 'Faculty', 'Room']}
                             data={subjects
                                 .filter(s => s.type === 'Lab')
-                                .filter(s => filterSemester === 'all' || s.semester === parseInt(filterSemester))
+                                .filter(s => filterYear === 'all' || String(s.year) === String(filterYear))
+                                .filter(s => filterSemester === 'all' || String(s.semester) === String(filterSemester))
                                 .filter(s => filterClass === 'all' || s.class_name === filterClass)
                                 .map(s => ({
                                     ...s,
@@ -345,14 +350,75 @@ export default function Subjects() {
                     </div>
                     <div>
                         <h4 className="font-bold text-gray-700 mb-3 uppercase tracking-widest text-[10px] flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                            Library/Skill Development
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            Open Elective Subjects
                         </h4>
                         <DataTable
                             headers={['Subject Code', 'Class', 'Acronym', 'Name', 'Year', 'Sem', 'Hours', 'Faculty', 'Room']}
                             data={subjects
-                                .filter(s => s.type === 'Library/Skill Development')
-                                .filter(s => filterSemester === 'all' || s.semester === parseInt(filterSemester))
+                                .filter(s => s.type === 'Open Elective')
+                                .filter(s => filterYear === 'all' || String(s.year) === String(filterYear))
+                                .filter(s => filterSemester === 'all' || String(s.semester) === String(filterSemester))
+                                .filter(s => filterClass === 'all' || s.class_name === filterClass)
+                                .map(s => ({
+                                    ...s,
+                                    subject_code: s.code,
+                                    class: s.class_name || 'A',
+                                    acronym: s.acronym || '-',
+                                    hours: s.weekly_hours,
+                                    faculty: s.faculty_ids && s.faculty_ids.length > 0
+                                        ? s.faculty_ids.map(id => facultyList.find(f => f.id === id)?.name).filter(Boolean).join(', ')
+                                        : (facultyList.find(f => f.id === s.faculty_id)?.name || 'Not Assigned'),
+                                    room: s.room_no || 'Auto',
+                                    sem: s.semester
+                                }))}
+                            onEdit={isAdmin ? handleEdit : null}
+                            onDuplicate={isAdmin ? handleDuplicate : null}
+                            onDelete={isAdmin ? handleDelete : null}
+                            showActions={isAdmin}
+                        />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-700 mb-3 uppercase tracking-widest text-[10px] flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                            Project Work
+                        </h4>
+                        <DataTable
+                            headers={['Subject Code', 'Class', 'Acronym', 'Name', 'Year', 'Sem', 'Hours', 'Faculty', 'Room']}
+                            data={subjects
+                                .filter(s => s.type === 'Project Work')
+                                .filter(s => filterYear === 'all' || String(s.year) === String(filterYear))
+                                .filter(s => filterSemester === 'all' || String(s.semester) === String(filterSemester))
+                                .filter(s => filterClass === 'all' || s.class_name === filterClass)
+                                .map(s => ({
+                                    ...s,
+                                    subject_code: s.code,
+                                    class: s.class_name || 'A',
+                                    acronym: s.acronym || '-',
+                                    hours: s.weekly_hours,
+                                    faculty: s.faculty_ids && s.faculty_ids.length > 0
+                                        ? s.faculty_ids.map(id => facultyList.find(f => f.id === id)?.name).filter(Boolean).join(', ')
+                                        : (facultyList.find(f => f.id === s.faculty_id)?.name || 'Not Assigned'),
+                                    room: s.room_no || 'Auto',
+                                    sem: s.semester
+                                }))}
+                            onEdit={isAdmin ? handleEdit : null}
+                            onDuplicate={isAdmin ? handleDuplicate : null}
+                            onDelete={isAdmin ? handleDelete : null}
+                            showActions={isAdmin}
+                        />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-700 mb-3 uppercase tracking-widest text-[10px] flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            Skill Development / Library
+                        </h4>
+                        <DataTable
+                            headers={['Subject Code', 'Class', 'Acronym', 'Name', 'Year', 'Sem', 'Hours', 'Faculty', 'Room']}
+                            data={subjects
+                                .filter(s => s.type === 'Skill Development' || s.type === 'Library/Skill Development')
+                                .filter(s => filterYear === 'all' || String(s.year) === String(filterYear))
+                                .filter(s => filterSemester === 'all' || String(s.semester) === String(filterSemester))
                                 .filter(s => filterClass === 'all' || s.class_name === filterClass)
                                 .map(s => ({
                                     ...s,
