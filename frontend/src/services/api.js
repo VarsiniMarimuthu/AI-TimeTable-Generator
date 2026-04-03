@@ -132,4 +132,19 @@ export const getTimetable = async (params) => {
     return response.data;
 };
 
+export const getAllTimetables = async (params) => {
+    const response = await api.get("/generation/all", { params });
+    return response.data;
+};
+
+export const deleteTimetable = async (id) => {
+    const response = await api.delete(`/generation/${id}`);
+    return response.data;
+};
+
+export const customizeSlot = async (data) => {
+    const response = await api.post("/generation/customize_slot", data);
+    return response.data;
+};
+
 export default api;

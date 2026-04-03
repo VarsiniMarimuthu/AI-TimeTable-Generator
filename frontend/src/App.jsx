@@ -7,6 +7,8 @@ import Faculty from './pages/Faculty';
 import Generator from './pages/Generator';
 import Rooms from './pages/Rooms';
 import Timetables from './pages/Timetables';
+import FacultyTimetableView from './pages/FacultyTimetableView';
+import AllTimetables from './pages/AllTimetables';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/generate" element={<Generator />} />
           <Route path="/timetables" element={<Timetables />} />
+          <Route path="/all-timetables" element={<AllTimetables />} />
+          <Route path="/faculty-timetable" element={<FacultyTimetableView />} />
 
           {/* Formatting Redirects */}
           <Route path="/admin" element={<Navigate to="/dashboard" />} />

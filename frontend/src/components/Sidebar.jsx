@@ -12,7 +12,9 @@ export default function Sidebar() {
         { name: 'Subjects', icon: GraduationCap, path: '/subjects', roles: ['admin', 'faculty'] },
         { name: 'Rooms', icon: MapPin, path: '/rooms', roles: ['admin', 'faculty'] },
         { name: 'Generate Timetable', icon: Settings, path: '/generate', roles: ['faculty'] },
-        { name: 'Timetables', icon: Calendar, path: '/timetables', roles: ['admin', 'faculty', 'student'] },
+        { name: 'Class Timetables', icon: Calendar, path: '/timetables', roles: ['admin', 'faculty', 'student'] },
+        { name: 'All Timetables', icon: Calendar, path: '/all-timetables', roles: ['admin', 'faculty'] },
+        { name: 'Faculty Timetable', icon: Calendar, path: '/faculty-timetable', roles: ['admin', 'faculty'] },
     ];
 
     const filteredItems = menuItems.filter(item => !item.roles || item.roles.includes(user.role));

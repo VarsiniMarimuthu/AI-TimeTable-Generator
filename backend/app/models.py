@@ -111,6 +111,9 @@ class TimetableSlot(BaseModel):
     faculty_ids: List[str] = Field(default_factory=list)
     room: str
     type: str # Theory or Lab
+    substitute_faculty: Optional[str] = None
+    substitute_faculty_ids: Optional[List[str]] = None
+    substitute_valid_until: Optional[str] = None
 
 class TimetableResponse(BaseModel):
     department: str

@@ -2,7 +2,9 @@ from fastapi import APIRouter, Body, HTTPException
 from typing import List, Optional
 from app.database import database, common_helper
 from app.models import GenerateRequest, TimetableResponse, TimetableSlot
+from bson import ObjectId
 import random
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -614,6 +616,21 @@ async def save_timetable(request: dict = Body(...)):
         schedule=[TimetableSlot(**s) for s in doc["schedule"]]
     )
 
+def process_substitutions(schedule: List[dict]):
+    current_time = datetime.now(timezone.utc)
+    for slot in schedule:
+        valid_until_str = slot.get('substitute_valid_until')
+        if valid_until_str:
+            try:
+                valid_until = datetime.fromisoformat(valid_until_str)
+                if valid_until >= current_time:
+                    # Safely override with substitute data if it exists
+                    slot['faculty'] = slot.get('substitute_faculty', slot.get('faculty', 'TBA'))
+                    slot['faculty_ids'] = slot.get('substitute_faculty_ids', slot.get('faculty_ids', []))
+            except (ValueError, TypeError):
+                pass
+    return schedule
+
 @router.get("/timetable", response_model=TimetableResponse)
 async def get_timetable(department_code: str, semester: int, year: Optional[int] = None, class_name: Optional[str] = None):
     query = {"department_code": department_code}
@@ -625,8 +642,168 @@ async def get_timetable(department_code: str, semester: int, year: Optional[int]
     if not doc:
         return TimetableResponse(department=department_code, semester=semester or 0, schedule=[])
         
+    schedule = process_substitutions(doc.get("schedule", []))
     return TimetableResponse(
         department=doc["department_code"],
         semester=doc.get("semester", 0),
-        schedule=[TimetableSlot(**s) for s in doc["schedule"]]
+        schedule=[TimetableSlot(**s) for s in schedule]
     )
+
+@router.get("/faculty_timetable")
+async def get_faculty_timetable(faculty_id: str, semester_type: Optional[str] = "ODD"):
+    from bson import ObjectId
+    # First get the faculty name
+    faculty = await database.faculty.find_one({"_id": ObjectId(faculty_id)})
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+
+    semesters = [1, 3, 5, 7] if semester_type.upper() == "ODD" else [2, 4, 6, 8]
+    
+    # Find all timetables for this semester type
+    tts_cursor = database.timetables.find({"semester": {"$in": semesters}})
+    all_tts = await tts_cursor.to_list(length=500)
+    
+    faculty_schedule = []
+    
+    for tt in all_tts:
+        class_label = f"Year {tt.get('year')} {tt.get('class_name')} Sec"
+        schedule = process_substitutions(tt.get('schedule', []))
+        for slot in schedule:
+            if faculty_id in slot.get('faculty_ids', []):
+                faculty_schedule.append({
+                    "day": slot.get("day"),
+                    "period": slot.get("period"),
+                    "subject": slot.get("subject"),
+                    "room": slot.get("room"),
+                    "class_name": class_label,
+                    "target_department": tt.get("department_code")
+                })
+                
+    return {
+        "faculty_name": faculty["name"],
+        "schedule": faculty_schedule
+    }
+
+@router.get("/all")
+async def get_all_timetables(department_code: Optional[str] = None):
+    query = {}
+    if department_code:
+        query["department_code"] = department_code
+    
+    cursor = database.timetables.find(query)
+    all_tts = await cursor.to_list(length=500)
+    
+    result = []
+    for tt in all_tts:
+        schedule = process_substitutions(tt.get("schedule", []))
+        result.append({
+            "department_code": tt.get("department_code"),
+            "year": tt.get("year"),
+            "semester": tt.get("semester"),
+            "class_name": tt.get("class_name"),
+            "schedule": [TimetableSlot(**s).model_dump() for s in schedule],
+            "id": str(tt.get("_id"))
+        })
+    return result
+
+@router.delete("/{id}")
+async def delete_timetable(id: str):
+    from bson import ObjectId
+    try:
+        obj_id = ObjectId(id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid timetable ID format")
+        
+    result = await database.timetables.delete_one({"_id": obj_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+        
+    return {"message": "Timetable deleted successfully"}
+
+@router.post("/customize_slot")
+async def customize_slot(request: dict = Body(...)):
+    dept = request.get("department_code")
+    year = request.get("year")
+    class_name = request.get("class_name")
+    day = request.get("day")
+    period = request.get("period")
+    new_faculty_id = request.get("new_faculty_id")
+    number_of_days = request.get("number_of_days")
+    
+    if not all([dept, year, class_name, day, period, new_faculty_id, number_of_days]):
+        raise HTTPException(status_code=400, detail="Missing required parameters")
+        
+    try:
+        period = int(period)
+        number_of_days = float(number_of_days)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid period or number_of_days type")
+        
+    # Get the substitute faculty details
+    fac = await database.faculty.find_one({"_id": ObjectId(new_faculty_id)})
+    if not fac:
+        raise HTTPException(status_code=404, detail="Substitute Faculty not found")
+        
+    faculty_name = fac["name"]
+    valid_until = (datetime.now(timezone.utc) + timedelta(days=number_of_days)).isoformat()
+    
+    # -----------------------------
+    # User Requirement: Check if substitute faculty is already assigned in ANOTHER class 
+    # at the same day + period.
+    # -----------------------------
+    existing_tts_cursor = database.timetables.find({})
+    async for tt in existing_tts_cursor:
+        tt_dept = tt.get('department_code')
+        tt_year = tt.get('year')
+        tt_class = tt.get('class_name')
+        
+        # Don't check the class we're updating against itself, wait, actually if it's the 
+        # same day/period in the SAME class, we are overriding it, so that's fine.
+        # Check against all timetables (if it's another class, or same class)
+        # But wait, what if the faculty is ALREADY teaching this exact slot? (i.e. we are just swapping their own slot)
+        # We should check if the substitute is busy in ANY class at this day and period, except if the slot they are assigned to is the one we are modifying!
+        
+        is_target_tt = (tt_dept == dept and int(tt_year) == int(year) and tt_class == class_name)
+        
+        processed_schedule = process_substitutions(tt.get('schedule', []))
+        for slot in processed_schedule:
+            if slot.get('day') == day and slot.get('period') == period:
+                fac_ids = slot.get('faculty_ids', [])
+                if new_faculty_id in fac_ids:
+                    # If it's the exact same class and slot, we are just overriding, but normally the substitute 
+                    # shouldn't be the same person. If it's another class, reject!
+                    if not is_target_tt:
+                        raise HTTPException(
+                            status_code=409, 
+                            detail=f"Faculty {faculty_name} is already assigned to Year {tt_year} Sec {tt_class} at Day: {day}, Period: {period}. Change rejected."
+                        )
+
+    # -----------------------------
+    
+    # Get the target timetable
+    query = {"department_code": dept, "year": int(year), "class_name": class_name}
+    doc = await database.timetables.find_one(query)
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+        
+    # Find the specific slot and update it
+    schedule = doc.get("schedule", [])
+    updated = False
+    for slot in schedule:
+        if slot.get("day") == day and slot.get("period") == period:
+            slot["substitute_faculty"] = faculty_name
+            slot["substitute_faculty_ids"] = [new_faculty_id]
+            slot["substitute_valid_until"] = valid_until
+            updated = True
+            break
+            
+    if not updated:
+        raise HTTPException(status_code=404, detail="Slot not found in the timetable")
+        
+    await database.timetables.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"schedule": schedule}}
+    )
+    
+    return {"message": "Timetable slot customized successfully."}
