@@ -50,7 +50,7 @@ export default function Subjects() {
         try {
             const payload = {
                 ...formData,
-                weekly_hours: parseInt(formData.weekly_hours),
+                weekly_hours: formData.weekly_hours,
                 semester: parseInt(formData.semester),
                 year: parseInt(formData.year)
             };
@@ -150,7 +150,7 @@ export default function Subjects() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-600 mb-1 tracking-tight">Weekly Hours</label>
-                                    <input type="number" className="w-full border p-2 rounded focus:ring-2 focus:ring-orodha-purple outline-none" value={formData.weekly_hours} onChange={e => setFormData({ ...formData, weekly_hours: e.target.value })} />
+                                    <input type="text" className="w-full border p-2 rounded focus:ring-2 focus:ring-orodha-purple outline-none" value={formData.weekly_hours} onChange={e => setFormData({ ...formData, weekly_hours: e.target.value })} placeholder="e.g. 5+2 or 7" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

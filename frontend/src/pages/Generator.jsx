@@ -307,7 +307,7 @@ export default function Generator() {
                                                 </div>
                                             </div>
                                             <button onClick={() => handleRemoveAllocation(alloc.id)} className="text-red-300 hover:text-red-600 transition p-2 bg-white rounded-lg shadow-sm">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                             </button>
                                         </div>
                                     ))}
