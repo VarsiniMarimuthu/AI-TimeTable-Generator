@@ -15,3 +15,4 @@ async def get_departments():
 @router.get("/timetable")
 async def get_timetable():
     return {"message": "Public Timetable View"}
+ 
